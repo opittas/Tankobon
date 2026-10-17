@@ -1,4 +1,5 @@
 import SwiftUI
+import BookKit
 import Playgrounds
 
 struct ContentView: View {
