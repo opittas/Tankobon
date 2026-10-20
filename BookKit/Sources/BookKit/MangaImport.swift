@@ -2,11 +2,11 @@ import Foundation
 
 /// Decide o que converter e faz a conversão de cada volume.
 ///
-/// - Cada ZIP/CBZ vira um volume (um EPUB).
+/// - Cada ZIP, CBZ, RAR, CBR ou 7z vira um volume (um EPUB).
 /// - Uma pasta com imagens (em qualquer subpasta) vira um volume.
-/// - Uma pasta sem imagens, mas com ZIPs/CBZs dentro, vira um volume por arquivo.
+/// - Uma pasta sem imagens, mas com esses arquivos dentro, vira um volume por arquivo.
 public enum MangaImport {
-    static let archiveExtensions: Set<String> = ["zip", "cbz"]
+    static let archiveExtensions: Set<String> = ["zip", "cbz", "rar", "cbr", "7z", "cb7"]
 
     public static func isArchive(_ url: URL) -> Bool {
         archiveExtensions.contains(url.pathExtension.lowercased())
@@ -60,7 +60,7 @@ public enum MangaImport {
         if isZip {
             let temporary = FileManager.default.temporaryDirectory.appending(path: "Tankobon-\(UUID().uuidString)")
             temporaryFolder = temporary
-            try ZipExtractor.extract(volume, to: temporary) { value in
+            try extract(volume, to: temporary) { value in
                 progress(value * 0.3)
             }
             folder = temporary
@@ -72,5 +72,38 @@ public enum MangaImport {
             progress(isZip ? 0.3 + value * 0.7 : value)
         }
         return output
+    }
+
+    /// Escolhe o extrator certo olhando os primeiros bytes do arquivo, e não a
+    /// extensão (muitos sites mandam ".cbr" que na verdade é ZIP, e vice-versa).
+    /// - ZIP: leitor próprio do app.
+    /// - RAR: UnRAR oficial.
+    /// - Outros (7z...): libarchive do sistema.
+    static func extract(_ archive: URL, to destination: URL, progress: (Double) -> Void) throws {
+        switch ArchiveKind(of: archive) {
+        case .zip:
+            try ZipExtractor.extract(archive, to: destination, progress: progress)
+        case .rar:
+            try RarExtractor.extract(archive, to: destination, progress: progress)
+        case .other:
+            try ArchiveExtractor.extract(archive, to: destination, progress: progress)
+        }
+    }
+
+    enum ArchiveKind: Equatable {
+        case zip, rar, other
+
+        init(of url: URL) {
+            let handle = try? FileHandle(forReadingFrom: url)
+            let header = (try? handle?.read(upToCount: 8)) ?? Data()
+            try? handle?.close()
+            if header.starts(with: [0x50, 0x4B]) {                                  // "PK"
+                self = .zip
+            } else if header.starts(with: [0x52, 0x61, 0x72, 0x21, 0x1A, 0x07]) {   // "Rar!"
+                self = .rar
+            } else {
+                self = .other
+            }
+        }
     }
 }

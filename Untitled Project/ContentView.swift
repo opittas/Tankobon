@@ -17,7 +17,7 @@ struct ContentView: View {
 
         var contentTypes: [UTType] {
             switch self {
-            case .mangaArchives: [UTType.zip, UTType(filenameExtension: "cbz")].compactMap { $0 }
+            case .mangaArchives: [UTType.zip] + ["cbz", "rar", "cbr", "7z", "cb7"].compactMap { UTType(filenameExtension: $0) }
             case .mangaFolder: [.folder]
             case .files: [.pdf, .epub]
             }
@@ -45,9 +45,9 @@ struct ContentView: View {
                     ContentUnavailableView {
                         Label("Nenhum mangá ainda", systemImage: "books.vertical")
                     } description: {
-                        Text("Escolha os ZIPs do mangá (um por volume) ou uma pasta. Cada volume vira um livro para o Apple Books.")
+                        Text("Escolha os arquivos do mangá (ZIP, CBZ, RAR ou CBR, um por volume) ou uma pasta. Cada volume vira um livro para o Apple Books.")
                     } actions: {
-                        Button("Importar ZIP ou CBZ") { startImport(.mangaArchives) }
+                        Button("Importar ZIP, RAR ou CBZ") { startImport(.mangaArchives) }
                             .buttonStyle(.borderedProminent)
                         Button("Importar pasta") { startImport(.mangaFolder) }
                     }
@@ -60,7 +60,7 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
-                        Button("Mangá em ZIP ou CBZ", systemImage: "doc.zipper") { startImport(.mangaArchives) }
+                        Button("Mangá em ZIP, RAR, CBZ ou CBR", systemImage: "doc.zipper") { startImport(.mangaArchives) }
                         Button("Pasta de mangá", systemImage: "folder.badge.plus") { startImport(.mangaFolder) }
                         Divider()
                         Button("PDF ou EPUB", systemImage: "doc.badge.plus") { startImport(.files) }
@@ -195,7 +195,7 @@ final class LibraryModel {
             do {
                 let volumes = try await Self.findVolumes(in: selection)
                 if volumes.isEmpty {
-                    failures.append("Não encontrei imagens nem arquivos ZIP/CBZ no que você escolheu.")
+                    failures.append("Não encontrei imagens nem arquivos ZIP, RAR, CBZ ou CBR no que você escolheu.")
                 }
                 for (offset, volume) in volumes.enumerated() {
                     let number = offset + 1

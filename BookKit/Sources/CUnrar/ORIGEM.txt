@@ -1,0 +1,1 @@
+UnRAR 7.13 (unrarsrc-7.1.10), copiado de https://github.com/aawc/unrar (commit 3e94098), espelho do código oficial de https://www.rarlab.com/rar_add.htm. Veja license.txt.
